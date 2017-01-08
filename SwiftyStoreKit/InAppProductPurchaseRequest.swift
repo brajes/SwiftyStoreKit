@@ -28,8 +28,8 @@ import Foundation
 class InAppProductPurchaseRequest: NSObject, SKPaymentTransactionObserver {
 
     enum TransactionResult {
-        case Purchased(productId: String)
-        case Restored(productId: String)
+        case Purchased(product: SwiftyStoreKit.Product)
+        case Restored(product: SwiftyStoreKit.Product)
         case Failed(error: NSError)
     }
     
@@ -40,28 +40,30 @@ class InAppProductPurchaseRequest: NSObject, SKPaymentTransactionObserver {
     var paymentQueue: SKPaymentQueue {
         return SKPaymentQueue.defaultQueue()
     }
-    
+
+    var atomically: Bool
     let product : SKProduct?
     
     deinit {
         paymentQueue.removeTransactionObserver(self)
     }
     // Initialiser for product purchase
-    private init(product: SKProduct?, callback: RequestCallback) {
+    private init(product: SKProduct?, atomically: Bool, callback: RequestCallback) {
 
         self.product = product
         self.callback = callback
+        self.atomically = atomically
         super.init()
         paymentQueue.addTransactionObserver(self)
     }
     // MARK: Public methods
-    class func startPayment(product: SKProduct, applicationUsername: String = "", callback: RequestCallback) -> InAppProductPurchaseRequest {
-        let request = InAppProductPurchaseRequest(product: product, callback: callback)
+    class func startPayment(product: SKProduct, atomically: Bool, applicationUsername: String = "", callback: RequestCallback) -> InAppProductPurchaseRequest {
+        let request = InAppProductPurchaseRequest(product: product, atomically: atomically, callback: callback)
         request.startPayment(product, applicationUsername: applicationUsername)
         return request
     }
-    class func restorePurchases(callback: RequestCallback) -> InAppProductPurchaseRequest {
-        let request = InAppProductPurchaseRequest(product: nil, callback: callback)
+    class func restorePurchases(atomically atomically: Bool, callback: RequestCallback) -> InAppProductPurchaseRequest {
+        let request = InAppProductPurchaseRequest(product: nil, atomically: atomically, callback: callback)
         request.startRestorePurchases()
         return request
     }
@@ -112,8 +114,13 @@ class InAppProductPurchaseRequest: NSObject, SKPaymentTransactionObserver {
             switch transactionState {
             case .Purchased:
                 if isPurchaseRequest {
-                    transactionResults.append(.Purchased(productId: transactionProductIdentifier))
-                    paymentQueue.finishTransaction(transaction)
+                    let product: SwiftyStoreKit.Product = SwiftyStoreKit.Product(productId: transactionProductIdentifier, transaction: transaction, needsFinishTransaction: !atomically)
+
+                    transactionResults.append(.Purchased(product: product))
+
+                    if atomically {
+                        paymentQueue.finishTransaction(transaction)
+                    }
                 }
             case .Failed:
                 // TODO: How to discriminate between purchase and restore?
@@ -125,8 +132,13 @@ class InAppProductPurchaseRequest: NSObject, SKPaymentTransactionObserver {
                 paymentQueue.finishTransaction(transaction)
             case .Restored:
                 if !isPurchaseRequest {
-                    transactionResults.append(.Restored(productId: transactionProductIdentifier))
-                    paymentQueue.finishTransaction(transaction)
+                    let product: SwiftyStoreKit.Product = SwiftyStoreKit.Product(productId: transactionProductIdentifier, transaction: transaction, needsFinishTransaction: !atomically)
+
+                    transactionResults.append(.Restored(product: product))
+
+                    if atomically {
+                        paymentQueue.finishTransaction(transaction)
+                    }
                 }
             case .Purchasing:
                 // In progress: do nothing
