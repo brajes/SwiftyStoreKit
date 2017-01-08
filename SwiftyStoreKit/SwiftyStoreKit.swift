@@ -108,7 +108,7 @@ public class SwiftyStoreKit {
         return sharedInstance.inflightPurchases.count > 0 || sharedInstance.restoreRequest != nil
     }
     
-    public class func completeTransactions(completion: (completedTransactions: [CompletedTransaction]) -> ()) {
+    public class func completeTransactions(atomically atomically: Bool, completion: (completedTransactions: [CompletedTransaction]) -> ()) {
         sharedInstance.completeTransactionsObserver = InAppCompleteTransactionsObserver(callback: completion)
     }
     
@@ -157,6 +157,10 @@ public class SwiftyStoreKit {
             let results = sharedInstance.processRestoreResults(results)
             completion(results: results)
         }
+    }
+
+    public class func finishTransaction(transaction transaction: SKPaymentTransaction) {
+        InAppProductPurchaseRequest.finishTransaction(transaction)
     }
 
     /**

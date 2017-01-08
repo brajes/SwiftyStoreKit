@@ -67,6 +67,10 @@ class InAppProductPurchaseRequest: NSObject, SKPaymentTransactionObserver {
         request.startRestorePurchases()
         return request
     }
+
+    class func finishTransaction(transaction: SKPaymentTransaction) {
+        SKPaymentQueue.defaultQueue().finishTransaction(transaction)
+    }
     
     // MARK: Private methods
     private func startPayment(product: SKProduct, applicationUsername: String = "") {
