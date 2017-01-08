@@ -42,7 +42,7 @@ class InAppCompleteTransactionsObserver: NSObject, SKPaymentTransactionObserver 
     
     private var callbackCalled: Bool = false
         
-    typealias TransactionsCallback = (completedTransactions: [SwiftyStoreKit.CompletedTransaction]) -> ()
+    typealias TransactionsCallback = (completedTransactions: [SwiftyStoreKit.Product]) -> ()
     
     var paymentQueue: SKPaymentQueue {
         return SKPaymentQueue.defaultQueue()
@@ -53,9 +53,12 @@ class InAppCompleteTransactionsObserver: NSObject, SKPaymentTransactionObserver 
     }
 
     let callback: TransactionsCallback
+    let atomically: Bool
+
     
-    init(callback: TransactionsCallback) {
-    
+    init(atomically: Bool, callback: TransactionsCallback) {
+
+        self.atomically = atomically
         self.callback = callback
         super.init()
         paymentQueue.addTransactionObserver(self)
@@ -70,7 +73,7 @@ class InAppCompleteTransactionsObserver: NSObject, SKPaymentTransactionObserver 
             return
         }
         
-        var completedTransactions: [SwiftyStoreKit.CompletedTransaction] = []
+        var completedTransactions: [SwiftyStoreKit.Product] = []
         
         for transaction in transactions {
             
@@ -81,14 +84,16 @@ class InAppCompleteTransactionsObserver: NSObject, SKPaymentTransactionObserver 
             #endif
 
             if transactionState != .Purchasing {
+
+                let product: SwiftyStoreKit.Product = SwiftyStoreKit.Product(productId: transaction.payment.productIdentifier, transaction: transaction, needsFinishTransaction: !atomically)
                 
-                let completedTransaction = SwiftyStoreKit.CompletedTransaction(productId: transaction.payment.productIdentifier, transactionState: transactionState)
-                
-                completedTransactions.append(completedTransaction)
+                completedTransactions.append(product)
                 
                 print("Finishing transaction for payment \"\(transaction.payment.productIdentifier)\" with state: \(transactionState.stringValue)")
-                
-                paymentQueue.finishTransaction(transaction)
+
+                if atomically {
+                    paymentQueue.finishTransaction(transaction)
+                }
             }
         }
         callbackCalled = true

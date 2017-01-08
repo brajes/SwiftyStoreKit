@@ -87,10 +87,6 @@ public class SwiftyStoreKit {
         case Success
         case Error(error: ErrorType)
     }
-    public struct CompletedTransaction {
-        public let productId: String
-        public let transactionState: PaymentTransactionState
-    }
 
     public enum InternalErrorCode: Int {
         case RestoredPurchaseWhenPurchasing = 0
@@ -108,8 +104,8 @@ public class SwiftyStoreKit {
         return sharedInstance.inflightPurchases.count > 0 || sharedInstance.restoreRequest != nil
     }
     
-    public class func completeTransactions(atomically atomically: Bool, completion: (completedTransactions: [CompletedTransaction]) -> ()) {
-        sharedInstance.completeTransactionsObserver = InAppCompleteTransactionsObserver(callback: completion)
+    public class func completeTransactions(atomically atomically: Bool, completion: (completedTransactions: [Product]) -> ()) {
+        sharedInstance.completeTransactionsObserver = InAppCompleteTransactionsObserver(atomically: atomically, callback: completion)
     }
     
     // MARK: Public methods
